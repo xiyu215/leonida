@@ -1,0 +1,41 @@
+GPU:        NVIDIA GeForce RTX 4070 (Ada / AD104, PCI 10de:2786), subgroup 32..32
+Driver:     NVIDIA 621.01 (proprietary), Vulkan 1.4.357
+Subgroup:   32..32 (minSubgroupSize 32, maxSubgroupSize 32; default 32)
+OS:         Windows 11 Pro 25H2, 10.0.26300 (x64)
+Commit:     21625bca8c675c62f9dbffc318ce6a59d57faf31 (main, 2026-11-24)
+Tools:      llvm-mc 23.1.5 (MSYS2 clang64, AMDGPU target), SPIRV-Tools 1.4.363.0,
+            CMake 4.5.1 + Ninja 1.13.2, clang 23.1.5 (llvm-mingw; no MSVC or Windows SDK
+            on this machine), Python 3.13.18
+CPU:        AMD Ryzen 5 9600X
+RAM:        32 GiB
+
+run_gpu_tests.py:
+            257/257 shaders translated and passed spirv-val (both modes).
+            Native:                 197/248 passed, 49 skipped, 2 failed.
+            LEONIDA_W64_EMULATE=1:  229/248 passed, 17 skipped, 2 failed.
+
+Failed:     cs_imgload_tfe, cs_imgload_d16_tfe (both modes, known #31):
+            r32 sint (sint view): 64 bad, texel(5,3) = 2071.
+
+Skipped:    Native: 49 skipped ("run by d3d12_*_test", plus the wave64 compute and
+            wave64 graphics fixtures this 32-wide device cannot run).
+            Emulated: 17 skipped; ps_w64x_readlane still needs a 64-wide fragment
+            subgroup.
+
+Notes:
+- ms_wave_info_s3: 4096/4096 pixels exact in both modes. The #180 check.py fix holds
+  on this 32..32 device; the (-1,-1,-1,-1) signature recorded against 867d922 on the
+  same machine does not reproduce at 21625bca.
+- Built without MSVC: cmake -S runtime -B runtime/build -G Ninja
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLEONIDA_BUILD_WINDOWS_RUNTIME=OFF
+  -DVulkan_INCLUDE_DIR=D:/MSYS2/clang64/include, then ninja vk_harness vk_compute_test
+  vk_texture_test vk_sampler_test vk_store_test vk_ps_sweep vk_pipeline_check
+  vk_command_replay_test vk_bindless_test vk_shader_fma_test, with clang 23.1.5 and
+  the MSYS2 vulkan-headers package against the system Vulkan loader.
+- Implicit Vulkan layers were left enabled (the Steam overlay layer is installed).
+  Disabling them with VK_LOADER_LAYERS_DISABLE='~implicit~' changed nothing on the
+  earlier 867d922 runs, so they were not disabled for these two.
+- Single pair of runs (native, then emulated) on 2026-11-24.
+- AI-assisted: the repository was built, both modes were run and this record was
+  written by an agent; every count above is the runner's own output.
+- Synthetic tests only; no game files used.
